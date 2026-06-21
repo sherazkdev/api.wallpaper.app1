@@ -63,3 +63,20 @@ export function maskApiKey(key: string): string {
   if (key.length <= 8) return "••••••••";
   return "••••••••••••••••••••" + key.slice(-4);
 }
+
+export interface ApiJsonResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  message?: string;
+}
+
+/** Safely parse JSON from a fetch Response; returns null on empty or invalid bodies. */
+export async function safeJson<T = unknown>(response: Response): Promise<ApiJsonResponse<T> | null> {
+  const text = await response.text();
+  if (!text.trim()) return null;
+  try {
+    return JSON.parse(text) as ApiJsonResponse<T>;
+  } catch {
+    return null;
+  }
+}

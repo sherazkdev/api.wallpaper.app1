@@ -47,7 +47,11 @@ export function resolveSrvViaNslookup(srvHost: string): SrvRecord[] {
   }
 
   if (records.length === 0) {
-    throw new Error(`nslookup returned no SRV records for ${query}`);
+    throw new Error(
+      `MongoDB SRV lookup failed for ${query}. ` +
+        "Verify MONGODB_URI in .env points to a real Atlas cluster, or set MONGODB_URI_STANDARD " +
+        "to a standard mongodb:// connection string."
+    );
   }
 
   return records;

@@ -18,7 +18,7 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
 import WallpaperThumbnail from "@/components/admin/WallpaperThumbnail";
-import { formatFileSize, formatDate } from "@/lib/utils";
+import { formatFileSize, formatDate, safeJson } from "@/lib/utils";
 import { DashboardStats, Wallpaper } from "@/types/wallpaper";
 import { ConfirmModal } from "@/components/ui/Modal";
 import toast from "react-hot-toast";
@@ -30,15 +30,26 @@ export default function DashboardPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     Promise.all([
-      fetch("/api/admin/stats").then((r) => r.json()),
-      fetch("/api/admin/wallpapers?limit=5").then((r) => r.json()),
-    ]).then(([statsRes, wallpapersRes]) => {
-      if (statsRes.success) setStats(statsRes.data);
-      if (wallpapersRes.success) setWallpapers(wallpapersRes.data.wallpapers);
-      setLoading(false);
-    });
+      fetch("/api/admin/stats").then((r) => safeJson(r)),
+      fetch("/api/admin/wallpapers?limit=5").then((r) => safeJson(r)),
+    ])
+      .then(([statsRes, wallpapersRes]) => {
+        if (statsRes?.success) setStats(statsRes.data as DashboardStats);
+        else if (!statsRes) setError("Unable to load dashboard stats. Check your database connection.");
+        if (wallpapersRes?.success) {
+          const data = wallpapersRes.data as { wallpapers: Wallpaper[] };
+          setWallpapers(data.wallpapers);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("Unable to connect to the server.");
+        setLoading(false);
+      });
   }, []);
 
   const handleDelete = async () => {
@@ -46,12 +57,12 @@ export default function DashboardPage() {
     setDeleting(true);
     try {
       const res = await fetch(`/api/admin/wallpapers/${deleteId}`, { method: "DELETE" });
-      const data = await res.json();
-      if (data.success) {
+      const data = await safeJson(res);
+      if (data?.success) {
         setWallpapers((prev) => prev.filter((w) => w.id !== deleteId));
         toast.success("Wallpaper deleted");
       } else {
-        toast.error(data.message);
+        toast.error(data?.message || "Delete failed");
       }
     } catch {
       toast.error("Failed to delete wallpaper");
@@ -66,13 +77,19 @@ export default function DashboardPage() {
   return (
     <div>
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-6 lg:p-8 mb-6 text-white relative overflow-hidden">
+      <div className="bg-gradient-to-r from-violet-600 to-indigo-600 rounded-2xl p-6 lg:p-8 mb-6 text-white relative overflow-hidden shadow-premium-lg">
         <div className="absolute right-0 top-0 w-48 h-48 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4" />
         <div className="relative">
           <h2 className="text-2xl font-bold">Welcome back, Admin!</h2>
-          <p className="text-blue-100 mt-1 text-sm">Manage your wallpaper API content and monitor system activity.</p>
+          <p className="text-violet-100 mt-1 text-sm">Manage your wallpaper API content and monitor system activity.</p>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm">
+          {error}
+        </div>
+      )}
 
       <PageHeader title="Dashboard" subtitle="Overview of your wallpaper API system." />
 
@@ -87,7 +104,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent Wallpapers */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+      <div className="bg-white rounded-2xl border border-slate-200/70 shadow-premium overflow-hidden">
         <div className="flex items-center justify-between p-5 border-b border-slate-200">
           <h3 className="font-semibold text-slate-900">Recent Wallpapers</h3>
           <Link href="/admin/wallpapers">
@@ -111,7 +128,7 @@ export default function DashboardPage() {
               </thead>
               <tbody>
                 {wallpapers.map((wp) => (
-                  <tr key={wp.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                  <tr key={wp.id} className="border-b border-slate-50 table-row-hover hover:bg-slate-50/80 transition-colors">
                     <td className="px-5 py-3">
                       <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-100 text-slate-700 text-xs font-bold">
                         {wp.order}
@@ -130,7 +147,7 @@ export default function DashboardPage() {
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-1">
                         <Link href={`/admin/wallpapers/edit/${wp.id}`}>
-                          <button className="p-1.5 rounded-md text-blue-600 hover:bg-blue-50 transition-colors">
+                          <button className="p-1.5 rounded-lg text-violet-600 hover:bg-violet-50 transition-colors">
                             <Pencil className="w-4 h-4" />
                           </button>
                         </Link>
@@ -149,7 +166,7 @@ export default function DashboardPage() {
           </div>
         )}
         <div className="p-4 text-center border-t border-slate-100">
-          <Link href="/admin/wallpapers" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+          <Link href="/admin/wallpapers" className="text-sm text-violet-600 hover:text-violet-800 font-medium">
             View All Wallpapers →
           </Link>
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { THEME } from "@/config/app";
 import { CloudUpload } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import Button from "@/components/ui/Button";
@@ -52,17 +53,28 @@ export default function UploadZone({
 
   return (
     <div
-      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setIsDragging(true);
+      }}
       onDragLeave={() => setIsDragging(false)}
       onDrop={onDrop}
       className={cn(
-        "border-2 border-dashed rounded-xl p-10 text-center transition-colors",
-        isDragging ? "border-blue-500 bg-blue-50" : "border-blue-200 bg-white hover:border-blue-300"
+        "border-2 border-dashed rounded-2xl p-10 text-center transition-all duration-200",
+        isDragging
+          ? cn(THEME.uploadZoneDrag, "scale-[1.01] shadow-premium")
+          : cn(THEME.uploadZoneBorder, THEME.uploadZoneHover, "bg-white")
       )}
     >
       <div className="flex flex-col items-center gap-4">
-        <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center">
-          {icon || <CloudUpload className="w-7 h-7 text-blue-600" />}
+        <div
+          className={cn(
+            "w-14 h-14 rounded-2xl flex items-center justify-center transition-transform",
+            THEME.uploadIconBg,
+            isDragging && "scale-110"
+          )}
+        >
+          {icon || <CloudUpload className={cn("w-7 h-7", THEME.uploadIcon)} />}
         </div>
         <div>
           <p className="text-base font-medium text-slate-900">{label}</p>

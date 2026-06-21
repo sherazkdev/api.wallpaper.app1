@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { Sound } from "@/lib/models";
-import { requireAdmin, apiError, apiSuccess } from "@/lib/api-utils";
+import { requireAdmin, apiError, apiSuccess, runAdminRoute } from "@/lib/api-utils";
 import { saveUploadedVideo } from "@/lib/upload";
 import { getNextWallpaperOrder, wallpaperOrderBy } from "@/lib/wallpaper-order";
 import { formatSound, formatSoundList, SOUND_LIST_PROJECTION } from "@/lib/sound-utils";
@@ -42,21 +42,19 @@ function buildFilter(search: string, status: string, format: string) {
 }
 
 export async function GET(request: NextRequest) {
-  const authError = await requireAdmin();
-  if (authError) return authError;
+  return runAdminRoute(async () => {
+    await connectDB();
 
-  await connectDB();
-
-  const { searchParams } = new URL(request.url);
-  const all = searchParams.get("all") === "true";
-  const page = all ? 1 : Math.max(1, parseInt(searchParams.get("page") || "1"));
-  const limit = all
-    ? Math.min(5000, Math.max(1, parseInt(searchParams.get("limit") || "5000")))
-    : Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "10")));
-  const search = searchParams.get("search") || "";
-  const status = searchParams.get("status") || "";
-  const format = searchParams.get("format") || "";
-  const filter = buildFilter(search, status, format);
+    const { searchParams } = new URL(request.url);
+    const all = searchParams.get("all") === "true";
+    const page = all ? 1 : Math.max(1, parseInt(searchParams.get("page") || "1"));
+    const limit = all
+      ? Math.min(5000, Math.max(1, parseInt(searchParams.get("limit") || "5000")))
+      : Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "10")));
+    const search = searchParams.get("search") || "";
+    const status = searchParams.get("status") || "";
+    const format = searchParams.get("format") || "";
+    const filter = buildFilter(search, status, format);
 
   const [wallpapers, total] = await Promise.all([
     Sound.find(filter)
@@ -68,7 +66,14 @@ export async function GET(request: NextRequest) {
     Sound.countDocuments(filter),
   ]);
 
-  return apiSuccess({ wallpapers: formatSoundList(wallpapers), total, page, limit, totalPages: Math.ceil(total / limit) });
+    return {
+      wallpapers: formatSoundList(wallpapers),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  });
 }
 
 export async function POST(request: NextRequest) {

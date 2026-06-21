@@ -24,3 +24,21 @@ export function apiError(message: string, status: number = 400) {
 export function apiSuccess<T>(data: T, status: number = 200) {
   return NextResponse.json({ success: true, data }, { status });
 }
+
+export async function runAdminRoute<T>(
+  handler: () => Promise<NextResponse | T>
+): Promise<NextResponse> {
+  const authError = await requireAdmin();
+  if (authError) return authError;
+
+  try {
+    const result = await handler();
+    if (result instanceof NextResponse) return result;
+    return apiSuccess(result);
+  } catch (err) {
+    console.error("[api]", err);
+    const message =
+      err instanceof Error ? err.message : "Internal server error";
+    return apiError(message, 500);
+  }
+}

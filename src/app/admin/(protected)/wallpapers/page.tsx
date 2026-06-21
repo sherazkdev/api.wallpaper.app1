@@ -19,6 +19,7 @@ import { ConfirmModal } from "@/components/ui/Modal";
 import SortableWallpaperList from "@/components/admin/SortableWallpaperList";
 import WallpaperDropUpload from "@/components/admin/WallpaperDropUpload";
 import { Wallpaper } from "@/types/wallpaper";
+import { safeJson } from "@/lib/utils";
 import toast from "react-hot-toast";
 
 export default function WallpapersPage() {
@@ -47,10 +48,12 @@ export default function WallpapersPage() {
       ...(formatFilter !== "all" && { format: formatFilter }),
     });
     const res = await fetch(`/api/admin/wallpapers?${params}`);
-    const data = await res.json();
-    if (data.success) {
+    const data = await safeJson<{ wallpapers: Wallpaper[]; total: number }>(res);
+    if (data?.success && data.data) {
       setWallpapers(data.data.wallpapers);
       setTotal(data.data.total);
+    } else if (!data) {
+      toast.error("Failed to load wallpapers. Check your database connection.");
     }
     setLoading(false);
   }, [page, perPage, search, statusFilter, formatFilter, hasFilters]);

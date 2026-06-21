@@ -20,7 +20,7 @@ import Button from "@/components/ui/Button";
 import CopyButton from "@/components/ui/CopyButton";
 import Card from "@/components/ui/Card";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
-import { maskApiKey } from "@/lib/utils";
+import { maskApiKey, safeJson } from "@/lib/utils";
 import { ApiSettings } from "@/types/wallpaper";
 import toast from "react-hot-toast";
 
@@ -36,8 +36,8 @@ export default function ApiSettingsPage() {
 
   const fetchSettings = async () => {
     const res = await fetch("/api/admin/settings");
-    const data = await res.json();
-    if (data.success) {
+    const data = await safeJson<ApiSettings>(res);
+    if (data?.success && data.data) {
       setSettings(data.data);
       setFullApiKey(data.data.apiKey);
     }
