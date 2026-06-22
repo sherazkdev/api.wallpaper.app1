@@ -53,9 +53,15 @@ export function toPublicMediaPath(
   return null;
 }
 
-/** Client-safe resolver: returns a browser-usable same-origin media path. */
+/** Client-safe resolver: returns a browser-usable absolute media path. */
 export function resolveMediaUrl(url: string | null | undefined): string | null {
-  return toPublicMediaPath(url);
+  const relative = toPublicMediaPath(url);
+  if (!relative) return null;
+  if (relative.startsWith("http://") || relative.startsWith("https://")) return relative;
+  const appUrl = process.env.NEXT_PUBLIC_URL || process.env.NEXT_PUBLIC_APP_URL || "";
+  if (!appUrl) return relative;
+  const base = appUrl.replace(/\/$/, "");
+  return `${base}${relative}`;
 }
 
 export function thumbnailPathFromFileName(fileName: string): string {

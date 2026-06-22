@@ -162,10 +162,14 @@ export async function saveUploadedVideo(
 
   const metadata = await getVideoMetadataFromPath(filePath);
   const thumbnailFileName = `${path.parse(fileName).name}.jpg`;
-  const thumbnailUrl = await generateThumbnail(filePath, thumbnailFileName);
+  const generatedThumbnail = await generateThumbnail(filePath, thumbnailFileName);
+
+  const appUrl = (process.env.NEXT_PUBLIC_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
+  const url = `${appUrl}/uploads/${fileName}`;
+  const thumbnailUrl = generatedThumbnail ? `${appUrl}/uploads/thumbnails/${thumbnailFileName}` : null;
 
   return {
-    url: `/uploads/${fileName}`,
+    url,
     fileName,
     fileSize: buffer.length,
     format: getVideoFormat(fileName),
@@ -231,12 +235,16 @@ export async function saveVideoFromBuffer(
 
   const metadata = await getVideoMetadataFromPath(filePath);
   let thumbnailUrl: string | null = null;
+  const appUrl = (process.env.NEXT_PUBLIC_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
   if (shouldGenerateThumbnail) {
     const thumbnailFileName = `${path.parse(fileName).name}.jpg`;
-    thumbnailUrl = await generateThumbnail(filePath, thumbnailFileName);
+    const generatedThumbnail = await generateThumbnail(filePath, thumbnailFileName);
+    if (generatedThumbnail) {
+      thumbnailUrl = `${appUrl}/uploads/thumbnails/${thumbnailFileName}`;
+    }
   }
   return {
-    url: `/uploads/${fileName}`,
+    url: `${appUrl}/uploads/${fileName}`,
     fileName,
     fileSize: buffer.length,
     format: getVideoFormat(baseName),

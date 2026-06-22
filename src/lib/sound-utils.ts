@@ -1,5 +1,5 @@
 import { normalizeZipEntryPath } from "./zip-utils";
-import { toPublicMediaPath } from "./media-url";
+import { toAbsoluteMediaUrl } from "./media-url";
 
 import type { SoundLean } from "./models/Sound";
 
@@ -8,8 +8,9 @@ type LeanDoc = Record<string, unknown> | SoundLean;
 export function formatSound(doc: LeanDoc) {
   const { _id, categoryId, createdAt, updatedAt, ...rest } = doc;
   const fileName = typeof rest.fileName === "string" ? rest.fileName : undefined;
-  const url = toPublicMediaPath(rest.url as string | undefined, { fileName, kind: "video" }) ?? "";
-  const thumbnailUrl = toPublicMediaPath(rest.thumbnailUrl as string | null | undefined, {
+  const appUrl = process.env.NEXT_PUBLIC_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const url = toAbsoluteMediaUrl(rest.url as string | undefined, appUrl, { fileName, kind: "video" }) ?? "";
+  const thumbnailUrl = toAbsoluteMediaUrl(rest.thumbnailUrl as string | null | undefined, appUrl, {
     fileName,
     kind: "thumbnail",
   });
